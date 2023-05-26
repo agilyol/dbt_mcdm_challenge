@@ -68,3 +68,36 @@ To build the seeds, run `dbt seed` in the dbt Cloud console. Once the seeds have
 	Q: What if there're no MCDM sctructure field in raw datasource data?
 	A: So you began the main goal of this task :)
 	Suggest wich field or fields corresponds to MCDM ones by their meaning. If there're no such fields, then probably datasource just doesnt got them
+
+### How to update models and add a new data source
+
+The datasource in the queries were merged with simple union all operation, to add a new  add platform data to the queries follow the below steps:
+* Copy the data file to the seed folder and run `dbt seed`.
+* Update the associated query with adding a new select operation to the union all operation. E.g. if you have a file with name src_xyz.csv and you need to extend cpc model for this after dbt seed, you can update query with associated field (for the below example *new_clicks* is a field) as in below:
+```
+with
+    cpc as (
+        select channel, round(sum(spend) / sum(clicks), 2) as `cpc`
+        from {{ ref("src_promoted_tweets_twitter_all_data") }}
+        group by channel
+        union all
+        select channel, round(sum(spend) / sum(clicks), 2) as `cpc`
+        from {{ ref("src_ads_creative_facebook_all_data") }}
+        group by channel
+        union all
+        select channel, round(sum(spend) / sum(clicks), 2) as `cpc`
+        from {{ ref("src_ads_bing_all_data") }}
+        group by channel
+        union all
+        select channel, round(sum(spend) / sum(clicks), 2) as `cpc`
+        from {{ ref("src_ads_tiktok_ads_all_data") }}
+        group by channel
+        union all
+        select channel, round(sum(spend) / sum(new_clicks), 2) as `cpc`
+        from {{ ref("src_xyz") }}
+        group by channel
+
+    )
+select * from cpc
+
+```
